@@ -103,6 +103,81 @@
       border: 1px solid #fde68a;
       font-size: 14px;
     }
+    .next-event-card {
+      --timer-bg: #eff8f0;
+      --timer-border: #cfe7d5;
+      --timer-accent: #2f855a;
+      --timer-shadow: rgba(47, 133, 90, 0.16);
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 22px;
+      border: 1px solid var(--timer-border);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--timer-bg) 100%);
+      box-shadow: 0 18px 34px var(--timer-shadow);
+      transition:
+        background 220ms ease,
+        border-color 220ms ease,
+        box-shadow 220ms ease,
+        color 220ms ease,
+        transform 160ms ease;
+    }
+    .next-event-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .next-event-top .section-title {
+      margin-bottom: 6px;
+    }
+    .next-event-badge {
+      flex: none;
+      white-space: nowrap;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      color: var(--timer-accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .next-event-when {
+      margin: 0;
+      color: var(--text);
+      font-size: 15px;
+    }
+    .countdown-value {
+      margin: 12px 0 10px;
+      font-size: clamp(32px, 11vw, 48px);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--timer-accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .countdown-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.65);
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(17, 24, 39, 0.08);
+    }
+    .countdown-bar {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--timer-accent) 0%, rgba(255, 255, 255, 0.88) 140%);
+      transition: width 220ms linear, background 220ms ease;
+    }
+    .next-event-note {
+      margin: 10px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
     .section-title {
       margin: 22px 2px 12px;
       font-size: 20px;
@@ -397,6 +472,24 @@
       <div class="warning">
         This page is a scheduling aid based on the instructions you gave. If your prescription label, leaflet, or pharmacist says anything different, follow that instead.
       </div>
+
+      <section class="next-event-card" aria-label="Next meal or tablet countdown">
+        <div class="next-event-top">
+          <div>
+            <div class="eyebrow">Live countdown</div>
+            <h2 class="section-title" style="margin-top:0">Next meal or tablet</h2>
+          </div>
+          <div class="next-event-badge" id="next-event-badge">Loading</div>
+        </div>
+        <p class="next-event-when" id="next-event-when">Working out what comes next in the plan.</p>
+        <div class="countdown-value" id="next-event-countdown" role="timer">--:--:--</div>
+        <div class="countdown-track" aria-hidden="true">
+          <span class="countdown-bar" id="next-event-bar"></span>
+        </div>
+        <p class="next-event-note" id="next-event-note">
+          This stays calm green, then warms through orange and red in the last 15 minutes.
+        </p>
+      </section>
     </header>
 
     <section class="meal-plan">
@@ -1068,6 +1161,197 @@
   <script>
     const key = "antibiotic_schedule_progress_v1";
     const saved = JSON.parse(localStorage.getItem(key) || "{}");
+    const countdownCard = document.querySelector(".next-event-card");
+    const countdownBadge = document.getElementById("next-event-badge");
+    const countdownWhen = document.getElementById("next-event-when");
+    const countdownValue = document.getElementById("next-event-countdown");
+    const countdownNote = document.getElementById("next-event-note");
+    const countdownBar = document.getElementById("next-event-bar");
+    const countdownWindowMs = 15 * 60 * 1000;
+    const courseStart = new Date(2026, 3, 17, 14, 0);
+    const courseEnd = new Date(2026, 3, 24, 9, 30);
+    const eventPattern = [
+      { hour: 2, minute: 0, type: "tablet", label: "Tablet dose" },
+      { hour: 8, minute: 0, type: "tablet", label: "Tablet dose" },
+      { hour: 9, minute: 30, type: "meal", label: "Suggested meal" },
+      { hour: 14, minute: 0, type: "tablet", label: "Tablet dose" },
+      { hour: 15, minute: 30, type: "meal", label: "Suggested meal" },
+      { hour: 20, minute: 0, type: "tablet", label: "Tablet dose" },
+      { hour: 21, minute: 30, type: "meal", label: "Suggested meal" }
+    ];
+    const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short"
+    });
+    const timerPalette = {
+      calm: { bg: "#eff8f0", border: "#cfe7d5", accent: "#2f855a", shadow: "rgba(47, 133, 90, 0.16)" },
+      warn: { bg: "#fff3e8", border: "#fed7aa", accent: "#ea580c", shadow: "rgba(234, 88, 12, 0.18)" },
+      urgent: { bg: "#fff1f2", border: "#fecdd3", accent: "#dc2626", shadow: "rgba(220, 38, 38, 0.18)" }
+    };
+
+    function buildCourseEvents() {
+      const events = [];
+      const dayCursor = new Date(courseStart.getFullYear(), courseStart.getMonth(), courseStart.getDate());
+      const finalDay = new Date(courseEnd.getFullYear(), courseEnd.getMonth(), courseEnd.getDate());
+
+      while (dayCursor <= finalDay) {
+        eventPattern.forEach((pattern) => {
+          const eventDate = new Date(
+            dayCursor.getFullYear(),
+            dayCursor.getMonth(),
+            dayCursor.getDate(),
+            pattern.hour,
+            pattern.minute
+          );
+
+          if (eventDate >= courseStart && eventDate <= courseEnd) {
+            events.push({
+              ...pattern,
+              date: eventDate
+            });
+          }
+        });
+
+        dayCursor.setDate(dayCursor.getDate() + 1);
+      }
+
+      return events.sort((a, b) => a.date - b.date);
+    }
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatCountdown(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      if (days > 0) {
+        return `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+      }
+
+      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    function sameCalendarDay(left, right) {
+      return left.getFullYear() === right.getFullYear()
+        && left.getMonth() === right.getMonth()
+        && left.getDate() === right.getDate();
+    }
+
+    function isTomorrow(date, now) {
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      return sameCalendarDay(date, tomorrow);
+    }
+
+    function formatEventMoment(event, now) {
+      if (sameCalendarDay(event.date, now)) {
+        return `Today at ${timeFormatter.format(event.date)}`;
+      }
+
+      if (isTomorrow(event.date, now)) {
+        return `Tomorrow at ${timeFormatter.format(event.date)}`;
+      }
+
+      return `${dateFormatter.format(event.date)} at ${timeFormatter.format(event.date)}`;
+    }
+
+    function hexToRgb(hex) {
+      const normalized = hex.replace("#", "");
+      return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+      };
+    }
+
+    function mixChannel(start, end, ratio) {
+      return Math.round(start + (end - start) * ratio);
+    }
+
+    function mixHex(startHex, endHex, ratio) {
+      const start = hexToRgb(startHex);
+      const end = hexToRgb(endHex);
+      const r = mixChannel(start.r, end.r, ratio);
+      const g = mixChannel(start.g, end.g, ratio);
+      const b = mixChannel(start.b, end.b, ratio);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function mixPalette(start, end, ratio) {
+      return {
+        bg: mixHex(start.bg, end.bg, ratio),
+        border: mixHex(start.border, end.border, ratio),
+        accent: mixHex(start.accent, end.accent, ratio),
+        shadow: `rgba(${mixChannel(47, 220, ratio)}, ${mixChannel(133, 38, ratio)}, ${mixChannel(90, 38, ratio)}, ${0.16 + (0.02 * ratio)})`
+      };
+    }
+
+    function paletteForRemaining(remainingMs) {
+      if (remainingMs > countdownWindowMs) {
+        return timerPalette.calm;
+      }
+
+      const midwayMs = countdownWindowMs / 2;
+      if (remainingMs > midwayMs) {
+        const ratio = 1 - ((remainingMs - midwayMs) / midwayMs);
+        return mixPalette(timerPalette.calm, timerPalette.warn, ratio);
+      }
+
+      if (remainingMs > 0) {
+        const ratio = 1 - (remainingMs / midwayMs);
+        return mixPalette(timerPalette.warn, timerPalette.urgent, ratio);
+      }
+
+      return timerPalette.urgent;
+    }
+
+    const courseEvents = buildCourseEvents();
+
+    function updateCountdown() {
+      const now = new Date();
+      const nextEvent = courseEvents.find((event) => event.date >= now);
+
+      if (!nextEvent) {
+        countdownBadge.textContent = "Course done";
+        countdownWhen.textContent = "The final planned meal or tablet time has passed.";
+        countdownValue.textContent = "Done";
+        countdownNote.textContent = "You can still use the checklist below as a record of doses already taken.";
+        countdownBar.style.width = "100%";
+        countdownCard.style.setProperty("--timer-bg", timerPalette.calm.bg);
+        countdownCard.style.setProperty("--timer-border", timerPalette.calm.border);
+        countdownCard.style.setProperty("--timer-accent", timerPalette.calm.accent);
+        countdownCard.style.setProperty("--timer-shadow", timerPalette.calm.shadow);
+        return;
+      }
+
+      const remainingMs = nextEvent.date - now;
+      const palette = paletteForRemaining(remainingMs);
+      const urgencyProgress = remainingMs > countdownWindowMs
+        ? 0
+        : ((countdownWindowMs - Math.max(remainingMs, 0)) / countdownWindowMs) * 100;
+      const typeLabel = nextEvent.type === "tablet" ? "Tablet" : "Meal";
+
+      countdownBadge.textContent = typeLabel;
+      countdownWhen.textContent = `${nextEvent.label} ${formatEventMoment(nextEvent, now)}`;
+      countdownValue.textContent = formatCountdown(remainingMs);
+      countdownNote.textContent = nextEvent.type === "tablet"
+        ? "Empty stomach reminder: 1 hour before food or 2 hours after food."
+        : "Suggested meal time in the daily rhythm plan.";
+      countdownBar.style.width = `${urgencyProgress.toFixed(1)}%`;
+      countdownCard.style.setProperty("--timer-bg", palette.bg);
+      countdownCard.style.setProperty("--timer-border", palette.border);
+      countdownCard.style.setProperty("--timer-accent", palette.accent);
+      countdownCard.style.setProperty("--timer-shadow", palette.shadow);
+    }
 
     document.querySelectorAll(".dose-check").forEach((box) => {
       const dose = box.dataset.dose;
@@ -1080,6 +1364,9 @@
         box.closest(".dose-row").classList.toggle("done", box.checked);
       });
     });
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
   </script>
 </body>
 </html>
