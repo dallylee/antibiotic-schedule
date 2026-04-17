@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A calm, mobile-friendly 7-day antibiotic schedule with meal guidance, suggested alarms, and locally saved dose checkboxes.">
+  <meta name="theme-color" content="#edf7ff">
+  <link rel="icon" href='data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Crect width="64" height="64" rx="18" fill="%23edf7ff"/%3E%3Cpath d="M20 32h24M32 20v24" stroke="%232f855a" stroke-width="6" stroke-linecap="round"/%3E%3C/svg%3E'>
+  <title>Antibiotic Schedule | 7-day dose plan</title>
+  <style>
+    :root {
+      --bg: #f5fbfb;
+      --card: rgba(255, 255, 255, 0.94);
+      --text: #1f2937;
+      --muted: #61707c;
+      --line: #dce7ea;
+      --accent: #111827;
+      --accent-soft: #eaf5ff;
+      --blue-soft: #edf7ff;
+      --green-soft: #eff8f0;
+      --blue-line: #cfe3f6;
+      --green-line: #cfe7d5;
+      --ok: #166534;
+      --shadow: 0 14px 32px rgba(38, 84, 124, 0.10);
+      --shadow-strong: 0 20px 42px rgba(38, 84, 124, 0.14);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background:
+        radial-gradient(circle at top, rgba(186, 230, 253, 0.22), transparent 30%),
+        linear-gradient(180deg, #f4fbff 0%, #f5fbf8 48%, #faf8f3 100%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 16px 16px 80px;
+    }
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #eef7ff 52%, #f4fbf7 100%);
+      border: 1px solid var(--blue-line);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .mini-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 8px 22px rgba(38, 84, 124, 0.06);
+    }
+    .mini-card:nth-child(1),
+    .mini-card:nth-child(4) {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--blue-soft) 100%);
+      border-color: var(--blue-line);
+    }
+    .mini-card:nth-child(2),
+    .mini-card:nth-child(3) {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--green-soft) 100%);
+      border-color: var(--green-line);
+    }
+    .mini-card strong {
+      display: block;
+      font-size: 20px;
+      margin-top: 4px;
+    }
+    .warning {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      background: #fffaf0;
+      border: 1px solid #fde68a;
+      font-size: 14px;
+    }
+    .section-title {
+      margin: 22px 2px 12px;
+      font-size: 20px;
+    }
+    .meal-plan {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--blue-soft) 100%);
+      border: 1px solid var(--blue-line);
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .meal-plan ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+    .meal-plan li {
+      margin: 8px 0;
+    }
+    .info-grid {
+      display: grid;
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .info-card {
+      border-radius: 22px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .info-card-blue {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--blue-soft) 100%);
+      border-color: var(--blue-line);
+    }
+    .info-card-green {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--green-soft) 100%);
+      border-color: var(--green-line);
+    }
+    .alarm-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .alarm-chip {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(148, 186, 220, 0.45);
+    }
+    .alarm-chip strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 3px;
+    }
+    .alarm-chip span {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .alarm-times {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 0;
+      display: grid;
+      gap: 10px;
+    }
+    .alarm-times li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(120, 162, 126, 0.28);
+    }
+    .alarm-times li::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7dd3fc 0%, #86efac 100%);
+      box-shadow: 0 0 0 5px rgba(125, 211, 252, 0.14);
+      flex: none;
+    }
+    .alarm-note {
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .day-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #fbfeff 100%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .day-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .day-head h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+    .pill {
+      white-space: nowrap;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .dose-list {
+      display: grid;
+      gap: 12px;
+    }
+    .dose-row {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+    .dose-row.done {
+      background: linear-gradient(135deg, #f0fdf4 0%, #f7fffb 100%);
+      border-color: #b9e6c7;
+      box-shadow: inset 0 0 0 1px rgba(185, 230, 199, 0.65);
+    }
+    .dose-check {
+      margin-top: 4px;
+      width: 18px;
+      height: 18px;
+      accent-color: #2f855a;
+    }
+    .dose-time {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .dose-row.done .dose-time {
+      color: var(--ok);
+    }
+    .dose-copy {
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .dose-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .table-wrap {
+      overflow-x: auto;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--blue-soft) 100%);
+      border: 1px solid var(--blue-line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    th {
+      background: rgba(237, 247, 255, 0.92);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .footer-note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .hero,
+    .mini-card,
+    .meal-plan,
+    .info-card,
+    .day-card,
+    .table-wrap,
+    .dose-row {
+      transition:
+        transform 160ms ease,
+        box-shadow 180ms ease,
+        border-color 180ms ease,
+        background-color 180ms ease;
+    }
+    .dose-row:focus-within {
+      border-color: #8fbfe6;
+      box-shadow: 0 0 0 4px rgba(143, 191, 230, 0.18);
+    }
+    .dose-check:focus-visible {
+      outline: 2px solid #4d8bc7;
+      outline-offset: 2px;
+    }
+    @media (hover: hover) {
+      .mini-card:hover,
+      .meal-plan:hover,
+      .info-card:hover,
+      .day-card:hover,
+      .table-wrap:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-strong);
+      }
+      .dose-row:hover {
+        transform: translateY(-1px);
+        border-color: #b8d6eb;
+        box-shadow: 0 12px 24px rgba(38, 84, 124, 0.10);
+      }
+    }
+    .mini-card:active,
+    .meal-plan:active,
+    .info-card:active,
+    .day-card:active,
+    .dose-row:active {
+      transform: scale(0.995);
+    }
+    @media (min-width: 700px) {
+      .wrap { padding: 24px 24px 90px; }
+      h1 { font-size: 36px; }
+      .hero { padding: 26px; }
+      .day-card { padding: 20px; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .mini-card strong { font-size: 18px; }
+      .dose-time { font-size: 22px; }
+    }
+    @media (max-width: 360px) {
+      .alarm-list { grid-template-columns: 1fr; }
+      .day-head { flex-direction: column; }
+      .pill { align-self: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero,
+      .mini-card,
+      .meal-plan,
+      .info-card,
+      .day-card,
+      .table-wrap,
+      .dose-row {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">7-day antibiotic plan</div>
+      <h1>Antibiotic timings and meal schedule</h1>
+      <p class="lead">
+        Based on: <strong>2 tablets, 4 times a day, for 7 days</strong>, on an <strong>empty stomach</strong>,
+        starting <strong>Friday 17 April 2026 at 14:00</strong>.
+      </p>
+
+      <div class="grid">
+        <div class="mini-card">
+          Every dose
+          <strong>Every 6 hours</strong>
+        </div>
+        <div class="mini-card">
+          Food rule
+          <strong>1h before food or 2h after food</strong>
+        </div>
+        <div class="mini-card">
+          Suggested meals
+          <strong>09:30, 15:30, 21:30</strong>
+        </div>
+        <div class="mini-card">
+          Total course
+          <strong>28 doses</strong>
+        </div>
+      </div>
+
+      <div class="warning">
+        This page is a scheduling aid based on the instructions you gave. If your prescription label, leaflet, or pharmacist says anything different, follow that instead.
+      </div>
+    </header>
+
+    <section class="meal-plan">
+      <div class="eyebrow">Simple daily rhythm</div>
+      <h2 class="section-title" style="margin-top:0">Suggested meal plan</h2>
+      <ul>
+        <li><strong>08:00</strong>, dose</li>
+        <li><strong>09:30</strong>, breakfast</li>
+        <li><strong>14:00</strong>, dose</li>
+        <li><strong>15:30</strong>, lunch</li>
+        <li><strong>20:00</strong>, dose</li>
+        <li><strong>21:30</strong>, dinner</li>
+        <li><strong>02:00</strong>, dose</li>
+      </ul>
+      <p class="footer-note">
+        The overnight 02:00 dose is the awkward one, but it keeps the spacing even from your 14:00 start.
+      </p>
+    </section>
+
+    <section class="info-grid" aria-label="Helpful reminders">
+      <article class="info-card info-card-blue">
+        <div class="eyebrow">Daily pattern</div>
+        <h2 class="section-title" style="margin-top:0">Today's rhythm</h2>
+        <p class="lead">
+          Once the course settles in, the same four dose times repeat each day and keep the spacing nice and even.
+        </p>
+        <div class="alarm-list" aria-label="Daily dose pattern">
+          <div class="alarm-chip">
+            <strong>02:00</strong>
+            <span>Overnight dose</span>
+          </div>
+          <div class="alarm-chip">
+            <strong>08:00</strong>
+            <span>Morning dose</span>
+          </div>
+          <div class="alarm-chip">
+            <strong>14:00</strong>
+            <span>Afternoon dose</span>
+          </div>
+          <div class="alarm-chip">
+            <strong>20:00</strong>
+            <span>Evening dose</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="info-card info-card-green">
+        <div class="eyebrow">Phone reminders</div>
+        <h2 class="section-title" style="margin-top:0">Suggested phone alarms</h2>
+        <ul class="alarm-times">
+          <li><strong>02:00</strong> overnight alarm</li>
+          <li><strong>08:00</strong> morning alarm</li>
+          <li><strong>14:00</strong> afternoon alarm</li>
+          <li><strong>20:00</strong> evening alarm</li>
+        </ul>
+        <p class="alarm-note">
+          Set repeating daily alarms for 7 days and label each alarm clearly, for example
+          <strong>"Antibiotics, 2 tablets"</strong>.
+        </p>
+      </article>
+    </section>
+
+    <h2 class="section-title">Daily schedule</h2>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 1</div>
+            <h2>Friday, 17 April 2026</h2>
+          </div>
+          <div class="pill">2 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="1">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 1: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="2">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 2: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 2</div>
+            <h2>Saturday, 18 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="3">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 3: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="4">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 4: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="5">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 5: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="6">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 6: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 3</div>
+            <h2>Sunday, 19 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="7">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 7: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="8">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 8: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="9">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 9: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="10">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 10: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 4</div>
+            <h2>Monday, 20 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="11">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 11: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="12">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 12: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="13">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 13: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="14">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 14: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 5</div>
+            <h2>Tuesday, 21 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="15">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 15: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="16">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 16: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="17">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 17: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="18">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 18: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 6</div>
+            <h2>Wednesday, 22 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="19">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 19: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="20">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 20: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="21">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 21: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="22">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 22: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 7</div>
+            <h2>Thursday, 23 April 2026</h2>
+          </div>
+          <div class="pill">4 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="23">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 23: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="24">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 24: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="25">
+            <div class="dose-main">
+              <div class="dose-time">14:00</div>
+              <div class="dose-copy">Dose 25: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 15:00</strong>, or make sure your last food was <strong>before 12:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="26">
+            <div class="dose-main">
+              <div class="dose-time">20:00</div>
+              <div class="dose-copy">Dose 26: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 21:00</strong>, or make sure your last food was <strong>before 18:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+      <section class="day-card">
+        <div class="day-head">
+          <div>
+            <div class="eyebrow">Day 8</div>
+            <h2>Friday, 24 April 2026</h2>
+          </div>
+          <div class="pill">2 doses</div>
+        </div>
+        <div class="dose-list">
+          
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="27">
+            <div class="dose-main">
+              <div class="dose-time">02:00</div>
+              <div class="dose-copy">Dose 27: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 03:00</strong>, or make sure your last food was <strong>before 00:00</strong>.</div>
+            </div>
+          </label>
+        
+          <label class="dose-row">
+            <input type="checkbox" class="dose-check" data-dose="28">
+            <div class="dose-main">
+              <div class="dose-time">08:00</div>
+              <div class="dose-copy">Dose 28: take <strong>2 tablets</strong> on an empty stomach</div>
+              <div class="dose-note">You can eat <strong>after 09:00</strong>, or make sure your last food was <strong>before 06:00</strong>.</div>
+            </div>
+          </label>
+        
+        </div>
+      </section>
+    
+
+    <h2 class="section-title">Full dose table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Dose</th>
+            <th>Date</th>
+            <th>Take at</th>
+            <th>Last food by</th>
+            <th>Can eat after</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+      <tr>
+        <td>1</td>
+        <td>Fri 17 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>2</td>
+        <td>Fri 17 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>3</td>
+        <td>Sat 18 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>4</td>
+        <td>Sat 18 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>5</td>
+        <td>Sat 18 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>6</td>
+        <td>Sat 18 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>7</td>
+        <td>Sun 19 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>8</td>
+        <td>Sun 19 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>9</td>
+        <td>Sun 19 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>10</td>
+        <td>Sun 19 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>11</td>
+        <td>Mon 20 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>12</td>
+        <td>Mon 20 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>13</td>
+        <td>Mon 20 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>14</td>
+        <td>Mon 20 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>15</td>
+        <td>Tue 21 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>16</td>
+        <td>Tue 21 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>17</td>
+        <td>Tue 21 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>18</td>
+        <td>Tue 21 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>19</td>
+        <td>Wed 22 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>20</td>
+        <td>Wed 22 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>21</td>
+        <td>Wed 22 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>22</td>
+        <td>Wed 22 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>23</td>
+        <td>Thu 23 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>24</td>
+        <td>Thu 23 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>25</td>
+        <td>Thu 23 Apr 2026</td>
+        <td>14:00</td>
+        <td>12:00 or earlier</td>
+        <td>15:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>26</td>
+        <td>Thu 23 Apr 2026</td>
+        <td>20:00</td>
+        <td>18:00 or earlier</td>
+        <td>21:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>27</td>
+        <td>Fri 24 Apr 2026</td>
+        <td>02:00</td>
+        <td>00:00 or earlier</td>
+        <td>03:00 or later</td>
+      </tr>
+    
+      <tr>
+        <td>28</td>
+        <td>Fri 24 Apr 2026</td>
+        <td>08:00</td>
+        <td>06:00 or earlier</td>
+        <td>09:00 or later</td>
+      </tr>
+    
+        </tbody>
+      </table>
+    </div>
+
+    <p class="footer-note">
+      Tick boxes are saved on this device in your browser, so you can keep track of what you’ve taken.
+    </p>
+  </div>
+
+  <script>
+    const key = "antibiotic_schedule_progress_v1";
+    const saved = JSON.parse(localStorage.getItem(key) || "{}");
+
+    document.querySelectorAll(".dose-check").forEach((box) => {
+      const dose = box.dataset.dose;
+      box.checked = !!saved[dose];
+      if (box.checked) box.closest(".dose-row").classList.add("done");
+
+      box.addEventListener("change", () => {
+        saved[dose] = box.checked;
+        localStorage.setItem(key, JSON.stringify(saved));
+        box.closest(".dose-row").classList.toggle("done", box.checked);
+      });
+    });
+  </script>
+</body>
+</html>
